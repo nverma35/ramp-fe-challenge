@@ -17,8 +17,10 @@ export const Transactions: TransactionsComponent = ({ transactions }) => {
     [fetchWithoutCache]
   )
 
-  if (transactions === null) {
-    return <div className="RampLoading--container">Loading...</div>
+  // Handle the case where transactions is null, undefined, or an empty array
+  if (!transactions || transactions.length === 0) {
+    return <div className="RampLoading--container">No transactions available</div>; 
+    // Display a fallback UI when no transactions are available
   }
 
   return (

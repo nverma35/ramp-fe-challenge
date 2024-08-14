@@ -1,13 +1,28 @@
-import { useState } from "react"
-import { InputCheckbox } from "../InputCheckbox"
-import { TransactionPaneComponent } from "./types"
+import { useState } from "react";
+import { InputCheckbox } from "../InputCheckbox";
+import { TransactionPaneComponent } from "./types";
 
 export const TransactionPane: TransactionPaneComponent = ({
   transaction,
   loading,
   setTransactionApproval: consumerSetTransactionApproval,
 }) => {
-  const [approved, setApproved] = useState(transaction.approved)
+  console.log(transaction);
+
+  const [approved, setApproved] = useState(transaction.approved ?? false);
+
+  // Ensure the transaction object is valid before using it
+  if (
+    !transaction || 
+    !transaction.employee || 
+    !transaction.employee.id || 
+    transaction.approved === undefined
+  ) {
+    console.error("Invalid transaction or employee data:", transaction);
+    return <div>Error: Invalid transaction or employee data</div>; // Fallback UI or error message
+  }
+
+  
 
   return (
     <div className="RampPane">
@@ -26,16 +41,16 @@ export const TransactionPane: TransactionPaneComponent = ({
           await consumerSetTransactionApproval({
             transactionId: transaction.id,
             newValue,
-          })
+          });
 
-          setApproved(newValue)
+          setApproved(newValue);
         }}
       />
     </div>
-  )
-}
+  );
+};
 
 const moneyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
-})
+});

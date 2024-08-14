@@ -40,12 +40,14 @@ export const getTransactionsPaginated = ({
 }
 
 export const getTransactionsByEmployee = ({ employeeId }: RequestByEmployeeParams) => {
+  // If employeeId is null or undefined, return all transactions
   if (!employeeId) {
-    throw new Error("Employee id cannot be empty")
+    return data.transactions; // Return all transactions when no specific employee is selected
   }
 
-  return data.transactions.filter((transaction) => transaction.employee.id === employeeId)
+  return data.transactions.filter((transaction) => transaction.employee.id === employeeId);
 }
+
 
 export const setTransactionApproval = ({ transactionId, value }: SetTransactionApprovalParams): void => {
   const transaction = data.transactions.find(
