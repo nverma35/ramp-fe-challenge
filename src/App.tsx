@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { InputSelect } from "./components/InputSelect";
 import { Instructions } from "./components/Instructions";
 import { Transactions } from "./components/Transactions";
@@ -13,9 +13,21 @@ export function App() {
   const { data: paginatedTransactions, loading: transactionsLoading, ...paginatedTransactionsUtils } = usePaginatedTransactions();
   const { data: transactionsByEmployee, ...transactionsByEmployeeUtils } = useTransactionsByEmployee();
 
+  const [transactionStates, setTransactionStates] = useState<{ [transactionId: string]: boolean }>({});
+
   const transactions = useMemo(
-    () => paginatedTransactions?.data ?? transactionsByEmployee ?? null,
-    [paginatedTransactions, transactionsByEmployee]
+      () => paginatedTransactions?.data ?? transactionsByEmployee ?? null,
+      [paginatedTransactions, transactionsByEmployee]
+  );
+
+  const handleApprovalChange = useCallback(
+      (transactionId: string, newValue: boolean) => {
+        setTransactionStates((prevState) => ({
+          ...prevState,
+          [transactionId]: newValue,
+        }));
+      },
+      []
   );
 
   const loadAllTransactions = useCallback(async () => {
@@ -26,11 +38,11 @@ export function App() {
   }, [employeeUtils, paginatedTransactionsUtils, transactionsByEmployeeUtils]);
 
   const loadTransactionsByEmployee = useCallback(
-    async (employeeId: string) => {
-      paginatedTransactionsUtils.invalidateData();
-      await transactionsByEmployeeUtils.fetchById(employeeId);
-    },
-    [paginatedTransactionsUtils, transactionsByEmployeeUtils]
+      async (employeeId: string) => {
+        paginatedTransactionsUtils.invalidateData();
+        await transactionsByEmployeeUtils.fetchById(employeeId);
+      },
+      [paginatedTransactionsUtils, transactionsByEmployeeUtils]
   );
 
   useEffect(() => {
@@ -40,51 +52,53 @@ export function App() {
   }, [employeesLoading, employees, loadAllTransactions]);
 
   return (
-    <Fragment>
-      <main className="MainContainer">
-        <Instructions />
+      <Fragment>
+        <main className="MainContainer">
+          <Instructions />
 
-        <hr className="RampBreak--l" />
+          <hr className="RampBreak--l" />
 
-        <InputSelect<Employee>
-          isLoading={employeesLoading} // Only show loading when employees are being fetched
-          defaultValue={EMPTY_EMPLOYEE}
-          items={employees === null ? [] : [EMPTY_EMPLOYEE, ...employees]}
-          label="Filter by employee"
-          loadingLabel="Loading employees"
-          parseItem={(item) => ({
-            value: item.id,
-            label: `${item.firstName} ${item.lastName}`,
-          })}
-          onChange={async (newValue) => {
-            if (newValue === null) {
-              return;
-            }
+          <InputSelect<Employee>
+              isLoading={employeesLoading} // Only show loading when employees are being fetched
+              defaultValue={EMPTY_EMPLOYEE}
+              items={employees === null ? [] : [EMPTY_EMPLOYEE, ...employees]}
+              label="Filter by employee"
+              loadingLabel="Loading employees"
+              parseItem={(item) => ({
+                value: item.id,
+                label: `${item.firstName} ${item.lastName}`,
+              })}
+              onChange={async (newValue) => {
+                if (newValue === null) {
+                  return;
+                }
 
-            await loadTransactionsByEmployee(newValue.id);
-          }}
-        />
+                await loadTransactionsByEmployee(newValue.id);
+              }}
+          />
 
-        <div className="RampBreak--l" />
+          <div className="RampBreak--l" />
 
-        <div className="RampGrid">
-  <Transactions transactions={transactions} />
+          <div className="RampGrid">
+            <Transactions
+                transactions={transactions}
+                transactionStates={transactionStates}
+                onApprovalChange={handleApprovalChange}
+            />
 
-  {/* Render "View More" button only when paginated transactions are being displayed */}
-  {transactions !== null && paginatedTransactions?.nextPage !== null && transactionsByEmployee === null && (
-    <button
-      className="RampButton"
-      disabled={transactionsLoading} // Disable button when transactions are loading
-      onClick={async () => {
-        await loadAllTransactions();
-      }}
-    >
-      View More
-    </button>
-  )}
-</div>
-
-      </main>
-    </Fragment>
+            {transactions !== null && paginatedTransactions?.nextPage !== null && transactionsByEmployee === null && (
+                <button
+                    className="RampButton"
+                    disabled={transactionsLoading} // Disable button when transactions are loading
+                    onClick={async () => {
+                      await loadAllTransactions();
+                    }}
+                >
+                  View More
+                </button>
+            )}
+          </div>
+        </main>
+      </Fragment>
   );
 }
