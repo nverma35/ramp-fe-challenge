@@ -1,5 +1,7 @@
 export type InputSelectItem = { label: string; value: string }
 
+
+
 export type InputSelectProps<TItem> = {
   label: string
   defaultValue?: TItem | null
@@ -15,6 +17,6 @@ export type DropdownPosition = {
   left: number
 }
 
-export type InputSelectOnChange<TItem> = (selectedItem: TItem | null) => void
+export type InputSelectOnChange<TItem> = (selectedItem: TItem | null) => void;
 
-export type GetDropdownPositionFn = (target: EventTarget) => DropdownPosition
+export type GetDropdownPositionFn = (target: EventTarget) => DropdownPosition;

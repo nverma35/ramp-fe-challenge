@@ -1,7 +1,7 @@
-import Downshift from "downshift"
-import { useCallback, useState } from "react"
-import classNames from "classnames"
-import { DropdownPosition, GetDropdownPositionFn, InputSelectOnChange, InputSelectProps } from "./types"
+import Downshift from "downshift";
+import { useCallback, useState, useEffect } from "react";
+import classNames from "classnames";
+import { DropdownPosition, GetDropdownPositionFn, InputSelectOnChange, InputSelectProps } from "./types";
 
 export function InputSelect<TItem>({
   label,
@@ -12,23 +12,46 @@ export function InputSelect<TItem>({
   isLoading,
   loadingLabel,
 }: InputSelectProps<TItem>) {
-  const [selectedValue, setSelectedValue] = useState<TItem | null>(defaultValue ?? null)
+  const [selectedValue, setSelectedValue] = useState<TItem | null>(defaultValue ?? null);
   const [dropdownPosition, setDropdownPosition] = useState<DropdownPosition>({
     top: 0,
     left: 0,
-  })
+  });
+
+  // Update 1: Type narrowing in updateDropdownPosition to handle EventTarget correctly
+  const updateDropdownPosition = useCallback((target: EventTarget | null) => {
+    if (target instanceof Element) { // Ensure target is an Element before calculating position
+      setDropdownPosition(getDropdownPosition(target));
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const inputElement = document.querySelector(".RampInputSelect--input"); // Select the input element
+      if (inputElement) {
+        updateDropdownPosition(inputElement); // Update dropdown position on scroll
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, true); // Add scroll event listener
+
+    // Cleanup the event listener on component unmount
+    return () => {
+      window.removeEventListener("scroll", handleScroll, true);
+    };
+  }, [updateDropdownPosition]);
 
   const onChange = useCallback<InputSelectOnChange<TItem>>(
     (selectedItem) => {
       if (selectedItem === null) {
-        return
+        return;
       }
 
-      consumerOnChange(selectedItem)
-      setSelectedValue(selectedItem)
+      consumerOnChange(selectedItem);
+      setSelectedValue(selectedItem);
     },
     [consumerOnChange]
-  )
+  );
 
   return (
     <Downshift<TItem>
@@ -47,8 +70,8 @@ export function InputSelect<TItem>({
         getToggleButtonProps,
         inputValue,
       }) => {
-        const toggleProps = getToggleButtonProps()
-        const parsedSelectedItem = selectedItem === null ? null : parseItem(selectedItem)
+        const toggleProps = getToggleButtonProps();
+        const parsedSelectedItem = selectedItem === null ? null : parseItem(selectedItem);
 
         return (
           <div className="RampInputSelect--root">
@@ -59,8 +82,8 @@ export function InputSelect<TItem>({
             <div
               className="RampInputSelect--input"
               onClick={(event) => {
-                setDropdownPosition(getDropdownPosition(event.target))
-                toggleProps.onClick(event)
+                updateDropdownPosition(event.currentTarget); // Ensure dropdown position is calculated on click
+                toggleProps.onClick(event);
               }}
             >
               {inputValue}
@@ -71,28 +94,28 @@ export function InputSelect<TItem>({
                 "RampInputSelect--dropdown-container-opened": isOpen,
               })}
               {...getMenuProps()}
-              style={{ top: dropdownPosition.top, left: dropdownPosition.left }}
+              style={{ top: dropdownPosition.top, left: dropdownPosition.left, position: 'absolute' }} // Ensure the dropdown is absolutely positioned
             >
               {renderItems()}
             </div>
           </div>
-        )
+        );
 
         function renderItems() {
           if (!isOpen) {
-            return null
+            return null;
           }
 
           if (isLoading) {
-            return <div className="RampInputSelect--dropdown-item">{loadingLabel}...</div>
+            return <div className="RampInputSelect--dropdown-item">{loadingLabel}...</div>;
           }
 
           if (items.length === 0) {
-            return <div className="RampInputSelect--dropdown-item">No items</div>
+            return <div className="RampInputSelect--dropdown-item">No items</div>;
           }
 
           return items.map((item, index) => {
-            const parsedItem = parseItem(item)
+            const parsedItem = parseItem(item);
             return (
               <div
                 key={parsedItem.value}
@@ -102,30 +125,29 @@ export function InputSelect<TItem>({
                   item,
                   className: classNames("RampInputSelect--dropdown-item", {
                     "RampInputSelect--dropdown-item-highlighted": highlightedIndex === index,
-                    "RampInputSelect--dropdown-item-selected":
-                      parsedSelectedItem?.value === parsedItem.value,
+                    "RampInputSelect--dropdown-item-selected": parsedSelectedItem?.value === parsedItem.value,
                   }),
                 })}
               >
                 {parsedItem.label}
               </div>
-            )
-          })
+            );
+          });
         }
       }}
     </Downshift>
-  )
+  );
 }
 
+// Updated getDropdownPosition to correctly calculate the dropdown position relative to the viewport with type narrowing
 const getDropdownPosition: GetDropdownPositionFn = (target) => {
-  if (target instanceof Element) {
-    const { top, left } = target.getBoundingClientRect()
-    const { scrollY } = window
+  if (target instanceof Element) { // Ensure target is an Element
+    const { top, left, height } = target.getBoundingClientRect();
     return {
-      top: scrollY + top + 63,
+      top: window.scrollY + top + height, // Adjust dropdown to be below the input
       left,
-    }
+    };
   }
 
-  return { top: 0, left: 0 }
-}
+  return { top: 0, left: 0 }; // Provide a default position if the target is not an Element
+};
